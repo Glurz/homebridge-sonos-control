@@ -1,7 +1,7 @@
-import {API, DynamicPlatformPlugin, Logging, PlatformAccessory, PlatformConfig, Service, Characteristic, uuid} from 'homebridge';
+import {API, DynamicPlatformPlugin, Logging, PlatformAccessory, PlatformConfig, Service, Characteristic} from 'homebridge';
 
-import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
-import { SonosControlPlatformAccessory } from './platformAccessory.js';
+import {PLATFORM_NAME, PLUGIN_NAME} from './settings.js';
+import {SonosControlPlatformAccessory} from './platformAccessory.js';
 import {SonosDevice, SonosEvents, SonosManager} from '@svrooij/sonos/lib/index.js';
 import {SonosSwitch} from './SonosSwitch';
 import {PluginConfiguration} from './PluginConfiguration';
@@ -113,7 +113,7 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
   }
 
   restoreOrRegisterSwitches() {
-    const configuredUUIDs: string[]= [];
+    const configuredUUIDs: string[] = [];
     for (const configuredSwitch of this.pluginConfiguration.switches) {
       const uuid = this.api.hap.uuid.generate(configuredSwitch.name);
       configuredUUIDs.push(uuid);
@@ -151,7 +151,13 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
   parseConfiguration(): PluginConfiguration {
     const switches: Array<SonosSwitch> = [];
     // TODO: validate configuration
-    this.config.notificationSwitches?.forEach((configuredSwitch: { name: string; trackUri: string; volume: number; onlyWhenPlaying: boolean; sonosDeviceNames: string[] }) => {
+    this.config.notificationSwitches?.forEach((configuredSwitch: {
+      name: string;
+      trackUri: string;
+      volume: number;
+      onlyWhenPlaying: boolean;
+      sonosDeviceNames: string[];
+    }) => {
       switches.push({
         name: configuredSwitch.name,
         trackUri: configuredSwitch.trackUri,
@@ -162,7 +168,14 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
       });
     });
 
-    this.config.trackSwitches?.forEach((configuredSwitch: { name: string; trackUri: string; volume?: number; sonosDeviceNames: string[]; seekPosition?: string; stopAfter?: number }) => {
+    this.config.trackSwitches?.forEach((configuredSwitch: {
+      name: string;
+      trackUri: string;
+      volume?: number;
+      sonosDeviceNames: string[];
+      seekPosition?: string;
+      stopAfter?: number;
+    }) => {
       switches.push({
         name: configuredSwitch.name,
         trackUri: configuredSwitch.trackUri,
