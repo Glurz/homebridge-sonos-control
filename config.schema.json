@@ -1,15 +1,122 @@
 {
-  "pluginAlias": "ExampleHomebridgePlugin",
+  "pluginAlias": "SonosControl",
   "pluginType": "platform",
   "singular": true,
   "schema": {
     "type": "object",
     "properties": {
-      "name": {
-        "title": "Name",
+      "notificationSwitches": {
+        "title": "Notification Switches",
+        "description": "Allows to configure multiple HomeKit switches to play notifications.",
+        "type": "array",
+        "items": {
+          "title": "Switch Configuration",
+          "type": "object",
+          "properties": {
+            "name": {
+              "title": "Name",
+              "description": "Name of the switch to be added to HomeKit.",
+              "type": "string",
+              "required": true
+            },
+            "trackUri": {
+              "title": "Track URI",
+              "description": "The URI of the notification to be played. Must be WAV or MP3.",
+              "type": "string",
+              "required": true
+            },
+            "sonosDeviceNames": {
+              "title": "Sonos Device Names",
+              "description": "The names of the Sonos devices this notification should be played on.",
+              "type": "array",
+              "required": true,
+              "items": {
+                "title": "Device Name",
+                "description": "Name of a Sonos device in your local network.",
+                "type": "string",
+                "required": true
+              }
+            },
+            "volume": {
+              "title": "Volume",
+              "description": "Volume of the notification.",
+              "type": "number",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25,
+              "required": true
+            },
+            "onlyWhenPlaying": {
+              "title": "Only When Playing",
+              "description": "Only play this notification, if the device is currently playing.",
+              "type": "boolean",
+              "required": false,
+              "default": false
+            }
+          }
+        }
+      },
+      "trackSwitches": {
+        "title": "Track Switches",
+        "description": "Allows to configure multiple HomeKit switches to play entire tracks or streams.",
+        "type": "array",
+        "items": {
+          "title": "Switch Configuration",
+          "type": "object",
+          "properties": {
+            "name": {
+              "title": "Name",
+              "description": "Name of the switch to be added to HomeKit.",
+              "type": "string",
+              "required": true
+            },
+            "trackUri": {
+              "title": "Track URI",
+              "description": "The URI of the track to be played. Can be any kind of track / stream URI Sonos supports.",
+              "type": "string",
+              "required": true
+            },
+            "sonosDeviceNames": {
+              "title": "Sonos Device Names",
+              "description": "The names of the Sonos devices this track should be played on.",
+              "type": "array",
+              "required": true,
+              "items": {
+                "title": "Device Name",
+                "description": "Name of a Sonos device in your local network.",
+                "type": "string",
+                "required": true
+              }
+            },
+            "volume": {
+              "title": "Volume",
+              "description": "Volume of the track to be played. If left empty, the current volume of the device is used.",
+              "type": "number",
+              "minimum": 1,
+              "maximum": 100,
+              "required": false
+            },
+            "seekPosition": {
+              "title": "Seek",
+              "description": "Jump to the given position in the track. Format: hh:mm:ss",
+              "type": "string",
+              "required": false
+            },
+            "stopAfter": {
+              "title": "Stop Playing After",
+              "description": "Stop playing after the given amount of seconds.",
+              "type": "number",
+              "minimum": 0,
+              "required": false
+            }
+          }
+        }
+      },
+      "sonosDeviceIp": {
+        "title": "Sonos Device IP",
+        "description": "If auto discovery of Sonos devices fails in your local network, enter the IP of any Sonos device. For this to work reliably, a static IP should be assigned to this device.",
         "type": "string",
-        "required": true,
-        "default": "Example Dynamic Platform"
+        "required": false
       }
     }
   }

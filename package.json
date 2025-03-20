@@ -3,9 +3,13 @@
   "displayName": "Homebridge Sonos Control",
   "name": "homebridge-sonos-control",
   "version": "0.1.0",
-  "description": "Allows to play tracks on your Sonos system via homebridge.",
+  "description": "Allows to play tracks and notifications on your Sonos system via homebridge / HomeKit.",
   "license": "Apache-2.0",
   "type": "module",
+  "author": {
+    "name": "Glurz",
+    "url": "https://glurz.xyz"
+  },
   "repository": {
     "type": "git",
     "url": "git@github.com:Glurz/homebridge-sonos-control.git"
@@ -14,8 +18,8 @@
     "url": "https://github.com/Glurz/homebridge-sonos-control/issues"
   },
   "engines": {
-    "node": "^18.17.0 || ^20.9.0",
-    "homebridge": "^1.8.0"
+    "node": "^18.17.0 || ^22.2.0",
+    "homebridge": "^1.8.0 || ^2.0.0-beta.0"
   },
   "main": "dist/index.js",
   "scripts": {
@@ -27,12 +31,16 @@
   "keywords": [
     "homebridge-plugin"
   ],
+  "dependencies": {
+    "@svrooij/sonos": "^2.6.0-beta.12"
+  },
   "devDependencies": {
+    "@types/debug": "^4.1.12",
     "@types/node": "^20.12.13",
     "@typescript-eslint/eslint-plugin": "^7.11.0",
     "@typescript-eslint/parser": "^7.11.0",
     "eslint": "^8.57.0",
-    "homebridge": "^1.8.2",
+    "homebridge": "^2.0.0-beta.0",
     "nodemon": "^3.1.2",
     "rimraf": "^5.0.7",
     "ts-node": "^10.9.2",
