@@ -58,6 +58,8 @@ export class SonosControlPlatformAccessory {
             this.platform.log.debug('Submitted notification %o', played);
             this.sonosSwitchService.getCharacteristic(this.platform.Characteristic.On).updateValue(false);
             this.deviceState.submittingAudio= false;
+          }).catch(error => {
+            this.platform.log.error('Error while playing notification: ' + JSON.stringify(error));
           });
       } else {
         const volumeRestoreListener= (trackUri: string) => {
@@ -107,6 +109,8 @@ export class SonosControlPlatformAccessory {
             await device.Play();
             this.sonosSwitchService.getCharacteristic(this.platform.Characteristic.On).updateValue(false);
             this.deviceState.submittingAudio = false;
+          }).catch(error => {
+            this.platform.log.error('Error while playing track: ' + JSON.stringify(error));
           });
       }
     });
