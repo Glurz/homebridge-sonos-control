@@ -18,6 +18,8 @@ export class SonosControlPlatformAccessory {
     submittingAudio: false,
   };
 
+  private previousVolume: number | undefined;
+
   constructor(
     private readonly platform: SonosControlPlatform,
     private readonly accessory: PlatformAccessory,
@@ -58,11 +60,24 @@ export class SonosControlPlatformAccessory {
             this.deviceState.submittingAudio= false;
           });
       } else {
+        const volumeRestoreListener= (trackUri: string) => {
+          this.platform.log.debug('volumeRestoreListener: track has changed to ' + trackUri);
+          if (this.previousVolume) {
+            device.SetVolume(this.previousVolume).then(() => {
+              this.platform.log.debug('volumeRestoreListener: restored volume to ' + this.previousVolume);
+              this.previousVolume= undefined;
+              device.Events.off(SonosEvents.CurrentTrackUri, volumeRestoreListener);
+            });
+          }
+        };
         const transportStateListener = (state: ExtendedTransportState) => {
           if (this.sonosSwitch.stopAfter) {
             if (state === 'PLAYING') {
-              // deregister again
+              // de-register listener that stops after configured amount of time
               device.Events.off(SonosEvents.CurrentTransportState, transportStateListener);
+
+              // register a listener that restores the previous volume after this track
+              device.Events.on(SonosEvents.CurrentTrackUri, volumeRestoreListener);
               setTimeout(() => {
                 device.Stop();
               }, this.sonosSwitch.stopAfter * 1000);
@@ -79,6 +94,14 @@ export class SonosControlPlatformAccessory {
               await device.SeekPosition(this.sonosSwitch.seekPosition);
             }
             if (this.sonosSwitch.volume) {
+              if (!this.previousVolume) {
+                // store current device volume for later restore
+                device.RenderingControlService.GetVolume({InstanceID: 0, Channel: 'Master'})
+                  .then(currentVolume => {
+                    this.previousVolume= currentVolume.CurrentVolume;
+                    this.platform.log.debug('Stored current volume for later restore: ', currentVolume.CurrentVolume);
+                  });
+              }
               await device.SetVolume(this.sonosSwitch.volume);
             }
             await device.Play();
@@ -125,6 +148,5 @@ export class SonosControlPlatformAccessory {
     // throw new this.platform.api.hap.HapStatusError(this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
     return isOn;
   }
-
 
 }
