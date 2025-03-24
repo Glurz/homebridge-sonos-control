@@ -23,6 +23,7 @@
               "title": "Track URI",
               "description": "The URI of the notification to be played. Must be WAV or MP3.",
               "type": "string",
+              "format": "uri",
               "required": true
             },
             "sonosDeviceNames": {
@@ -48,7 +49,7 @@
             },
             "onlyWhenPlaying": {
               "title": "Only When Playing",
-              "description": "Only play this notification, if the device is currently playing.",
+              "description": "Only play this notification, if the device is already playing.",
               "type": "boolean",
               "required": false,
               "default": false
@@ -74,6 +75,7 @@
               "title": "Track URI",
               "description": "The URI of the track to be played. Can be any kind of track / stream URI Sonos supports.",
               "type": "string",
+              "format": "uri",
               "required": true
             },
             "sonosDeviceNames": {
@@ -100,7 +102,8 @@
               "title": "Seek",
               "description": "Jump to the given position in the track. Format: hh:mm:ss",
               "type": "string",
-              "required": false
+              "required": false,
+              "pattern": "^[0-9]{2}:[0-9]{2}:[0-9]{2}$"
             },
             "stopAfter": {
               "title": "Stop Playing After",
@@ -116,6 +119,7 @@
         "title": "Sonos Device IP",
         "description": "If auto discovery of Sonos devices fails in your local network, enter the IP of any Sonos device. For this to work reliably, a static IP should be assigned to this device.",
         "type": "string",
+        "format": "ipv4",
         "required": false
       }
     }
