@@ -90,12 +90,12 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
       }
 
       this.sonosManager.Devices.forEach(device => {
-        this.log.info('Found device "%s" in group %s. Is coordinator?: %s',
+        this.log.info('Found device "%s" in group "%s". Is coordinator: %s',
           device.Name, device.GroupName ?? 'No group', device.IsCoordinator);
 
         if (device.IsCoordinator) {
           device.Events.on(SonosEvents.CurrentTrackMetadata, data => {
-            this.log.debug('Current track metadata on device %s: %s', device.Name, JSON.stringify(data));
+            this.log.debug('Current track metadata on device "%s": %s', device.Name, JSON.stringify(data));
           });
           this.discoveredSonosCoordinatorDevices.push(device);
         }

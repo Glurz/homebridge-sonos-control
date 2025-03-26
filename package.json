@@ -18,7 +18,7 @@
     "url": "https://github.com/Glurz/homebridge-sonos-control/issues"
   },
   "engines": {
-    "node": "^18.17.0 || ^22.2.0",
+    "node": "^18.0.0 || ^20.0.0 || ^22.0.0",
     "homebridge": "^1.8.0 || ^2.0.0-beta.0"
   },
   "main": "dist/index.js",
