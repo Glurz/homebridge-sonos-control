@@ -1,5 +1,5 @@
 {
-  "private": true,
+  "private": false,
   "displayName": "Homebridge Sonos Control",
   "name": "homebridge-sonos-control",
   "version": "0.1.0",
@@ -29,7 +29,10 @@
     "prepublishOnly": "npm run lint && npm run build"
   },
   "keywords": [
-    "homebridge-plugin"
+    "homebridge-plugin",
+    "homebridge sonos control",
+    "sonos",
+    "glurz"
   ],
   "dependencies": {
     "@svrooij/sonos": "^2.6.0-beta.12"
