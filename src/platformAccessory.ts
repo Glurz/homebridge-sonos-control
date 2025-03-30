@@ -56,10 +56,11 @@ export class SonosControlPlatformAccessory {
         })
           .then(played => {
             this.platform.log.debug('Submitted notification %o', played);
-            this.sonosSwitchService.getCharacteristic(this.platform.Characteristic.On).updateValue(false);
-            this.deviceState.submittingAudio= false;
           }).catch(error => {
             this.platform.log.error('Error while playing notification: ' + JSON.stringify(error));
+          }).finally(() => {
+            this.sonosSwitchService.getCharacteristic(this.platform.Characteristic.On).updateValue(false);
+            this.deviceState.submittingAudio= false;
           });
       } else {
         const volumeRestoreListener= (trackUri: string) => {
@@ -98,7 +99,7 @@ export class SonosControlPlatformAccessory {
             if (this.sonosSwitch.volume) {
               if (!this.previousVolume) {
                 // store current device volume for later restore
-                device.RenderingControlService.GetVolume({InstanceID: 0, Channel: 'Master'})
+                await device.RenderingControlService.GetVolume({InstanceID: 0, Channel: 'Master'})
                   .then(currentVolume => {
                     this.previousVolume= currentVolume.CurrentVolume;
                     this.platform.log.debug('Stored current volume for later restore: ', currentVolume.CurrentVolume);
@@ -107,10 +108,11 @@ export class SonosControlPlatformAccessory {
               await device.SetVolume(this.sonosSwitch.volume);
             }
             await device.Play();
-            this.sonosSwitchService.getCharacteristic(this.platform.Characteristic.On).updateValue(false);
-            this.deviceState.submittingAudio = false;
           }).catch(error => {
             this.platform.log.error('Error while playing track: ' + JSON.stringify(error));
+          }).finally(() => {
+            this.sonosSwitchService.getCharacteristic(this.platform.Characteristic.On).updateValue(false);
+            this.deviceState.submittingAudio = false;
           });
       }
     });
