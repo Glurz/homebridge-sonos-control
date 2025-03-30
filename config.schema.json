@@ -100,7 +100,7 @@
             },
             "seekPosition": {
               "title": "Seek",
-              "description": "Jump to the given position in the track. Format: hh:mm:ss",
+              "description": "Jump to the given position in the track. Format: hh:mm:ss. Do not use for stream URIs.",
               "type": "string",
               "required": false,
               "pattern": "^[0-9]{2}:[0-9]{2}:[0-9]{2}$"
