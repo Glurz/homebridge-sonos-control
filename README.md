@@ -59,11 +59,11 @@ Configuration is done in `config.json`. There are two main functionalities:
 Notifications use a native functionality of the Sonos speakers, in which a (short) notification is played, whereby the music currently playing is paused or, depending on the device, continues to play quietly in the background. After the notification, the previous status is restored.
 
 | Field              | Type           | Description                                                         |
-| ------------------ | -------------- | ------------------------------------------------------------------- |
+| ------------------ | -------------- |---------------------------------------------------------------------|
 | `name`             | string         | Name of the switch in HomeKit                                       |
 | `trackUri`         | string (URL)   | The MP3 or WAV file to be played                                    |
 | `sonosDeviceNames` | string[]       | Names of the Sonos devices that will play the notification          |
-| `volume`           | number (1-100) | Volume of the notification (default: 25)                            |
+| `volume`           | number (1-100) | Volume of the notification (optional)                               |
 | `onlyWhenPlaying`  | boolean        | Only play when the device is already playing music (default: false) |
 
 ### **Track Switches**
@@ -89,7 +89,7 @@ Sonos understands a variety of Track URIs. Some examples:
 - `spotify:track:3dPQuX8Gs42Y7b454ybpMR`
 - `x-rincon-mp3radio://http://stream.srg-ssr.ch/drs3/mp3_128.m3u`
 
-ℹ️ To easily figure out the track URIs of played tracks, this plugin logs the metadata (incl. track URI) of any song played on your Sonos system into the log.
+ℹ️ To easily figure out the track URIs of played tracks, this plugin logs the metadata (incl. track URI) of any song played on your Sonos system to the debug log.
 
 ## 🔗 Links
 

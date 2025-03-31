@@ -43,9 +43,7 @@
               "description": "Volume of the notification.",
               "type": "number",
               "minimum": 1,
-              "maximum": 100,
-              "default": 25,
-              "required": true
+              "maximum": 100
             },
             "onlyWhenPlaying": {
               "title": "Only When Playing",

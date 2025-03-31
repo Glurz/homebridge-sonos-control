@@ -154,7 +154,7 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
     this.config.notificationSwitches?.forEach((configuredSwitch: {
       name: string;
       trackUri: string;
-      volume: number;
+      volume?: number;
       onlyWhenPlaying: boolean;
       sonosDeviceNames: string[];
     }) => {
