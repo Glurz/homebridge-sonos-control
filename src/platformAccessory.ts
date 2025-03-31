@@ -18,7 +18,7 @@ export class SonosControlPlatformAccessory {
     submittingAudio: false,
   };
 
-  private previousVolume: number | undefined;
+  private previousVolumeByUUID: Map<string, number | undefined> = new Map();
 
   constructor(
     private readonly platform: SonosControlPlatform,
@@ -45,30 +45,35 @@ export class SonosControlPlatformAccessory {
   private playOnConfiguredDevices() {
     const sonosDevices = this.platform.getDiscoveredSonosCoordinatorDevices
       .filter((sonosDevice) => this.sonosSwitch.sonosDeviceNames.includes(sonosDevice.Name));
-    sonosDevices.forEach(device => {
-      this.platform.log.debug('Going to play on device ' + device.Name);
 
+    if (sonosDevices.length === 0) {
+      this.platform.log.debug('Configured device names in switch "%s" didn\'t match any Sonos device names.', this.sonosSwitch.name);
+      return;
+    }
+    this.previousVolumeByUUID.clear();
+    sonosDevices.forEach(device => {
       if (this.sonosSwitch.isNotification) {
         device.PlayNotificationAudioClip({
           trackUri: this.sonosSwitch.trackUri,
           onlyWhenPlaying: this.sonosSwitch.onlyWhenPlaying,
           volume: this.sonosSwitch.volume,
-        })
-          .then(played => {
-            this.platform.log.debug('Submitted notification %o', played);
-          }).catch(error => {
-            this.platform.log.error('Error while playing notification: ' + JSON.stringify(error));
-          }).finally(() => {
-            this.sonosSwitchService.getCharacteristic(this.platform.Characteristic.On).updateValue(false);
-            this.deviceState.submittingAudio= false;
-          });
+        }).then(played => {
+          this.platform.log.debug('Submitted notification to device "%s" from switch "%s": %o',
+            device.Name, this.sonosSwitch.name, played);
+        }).catch(error => {
+          this.platform.log.error('Error while playing notification: ' + JSON.stringify(error));
+        }).finally(() => {
+          this.sonosSwitchService.getCharacteristic(this.platform.Characteristic.On).updateValue(false);
+          this.deviceState.submittingAudio= false;
+        });
       } else {
         const volumeRestoreListener= (trackUri: string) => {
-          this.platform.log.debug('volumeRestoreListener: track has changed to ' + trackUri);
-          if (this.previousVolume) {
-            device.SetVolume(this.previousVolume).then(() => {
-              this.platform.log.debug('volumeRestoreListener: restored volume to ' + this.previousVolume);
-              this.previousVolume= undefined;
+          this.platform.log.debug('volumeRestoreListener: track on device "%s" has changed to "%s"', device.Name, trackUri);
+          const previousVolume = this.previousVolumeByUUID.get(device.Uuid);
+          if (previousVolume) {
+            device.SetVolume(previousVolume).then(() => {
+              this.platform.log.debug('volumeRestoreListener: restored volume to %d on device "%s"', previousVolume, device.Name);
+              this.previousVolumeByUUID.set(device.Uuid, undefined);
               device.Events.off(SonosEvents.CurrentTrackUri, volumeRestoreListener);
             });
           }
@@ -80,7 +85,9 @@ export class SonosControlPlatformAccessory {
               device.Events.off(SonosEvents.CurrentTransportState, transportStateListener);
 
               // register a listener that restores the previous volume after this track
-              device.Events.on(SonosEvents.CurrentTrackUri, volumeRestoreListener);
+              if (!device.Events.listeners(SonosEvents.CurrentTrackUri).includes(volumeRestoreListener)) {
+                device.Events.on(SonosEvents.CurrentTrackUri, volumeRestoreListener);
+              }
               setTimeout(() => {
                 device.Stop();
               }, this.sonosSwitch.stopAfter * 1000);
@@ -88,23 +95,29 @@ export class SonosControlPlatformAccessory {
           }
         };
         if (this.sonosSwitch.stopAfter) {
-          device.Events.on(SonosEvents.CurrentTransportState, transportStateListener);
+          if (!device.Events.listeners(SonosEvents.CurrentTransportState).includes(transportStateListener)) {
+            device.Events.on(SonosEvents.CurrentTransportState, transportStateListener);
+          }
         }
         device.SetAVTransportURI(this.sonosSwitch.trackUri)
           .then(async played => {
-            this.platform.log.debug('Submitted new trackUri %o', played);
+            this.platform.log.debug('Submitted new trackUri to device "%s" from switch "%s": %o',
+              device.Name, this.sonosSwitch.name, played);
             if (this.sonosSwitch.seekPosition) {
               await device.SeekPosition(this.sonosSwitch.seekPosition);
             }
             if (this.sonosSwitch.volume) {
-              if (!this.previousVolume) {
+              const previousVolume = this.previousVolumeByUUID.get(device.Uuid);
+              if (previousVolume === undefined) {
                 // store current device volume for later restore
                 await device.RenderingControlService.GetVolume({InstanceID: 0, Channel: 'Master'})
                   .then(currentVolume => {
-                    this.previousVolume= currentVolume.CurrentVolume;
-                    this.platform.log.debug('Stored current volume for later restore: ', currentVolume.CurrentVolume);
+                    this.previousVolumeByUUID.set(device.Uuid, currentVolume.CurrentVolume);
+                    this.platform.log.debug('Stored current volume %d of device "%s" for later restore',
+                      currentVolume.CurrentVolume, device.Name);
                   });
               }
+              this.platform.log.debug('Setting volume on device "%s" to %d', device.Name, this.sonosSwitch.volume);
               await device.SetVolume(this.sonosSwitch.volume);
             }
             await device.Play();
