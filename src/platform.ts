@@ -5,6 +5,7 @@ import {SonosControlPlatformAccessory} from './platformAccessory.js';
 import {SonosDevice, SonosEvents, SonosManager} from '@svrooij/sonos/lib/index.js';
 import {SonosSwitch} from './SonosSwitch';
 import {PluginConfiguration} from './PluginConfiguration';
+import {Track} from '@svrooij/sonos/lib/models';
 
 
 /**
@@ -94,9 +95,24 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
           device.Name, device.GroupName ?? 'No group', device.IsCoordinator);
 
         if (device.IsCoordinator) {
-          device.Events.on(SonosEvents.CurrentTrackMetadata, data => {
+          const transportStateListener = (state: string) => {
+            this.log.debug('Transport state changed to %s on device "%s"', state, device.Name);
+          };
+          if (!device.Events.listeners(SonosEvents.CurrentTransportState).includes(transportStateListener)) {
+            device.Events.on(SonosEvents.CurrentTransportState, transportStateListener);
+          }
+          const metaDataListener = (data: Track) => {
             this.log.debug('Current track metadata on device "%s": %s', device.Name, JSON.stringify(data));
-          });
+          };
+          if (!device.Events.listeners(SonosEvents.CurrentTrackMetadata).includes(metaDataListener)) {
+            device.Events.on(SonosEvents.CurrentTrackMetadata, metaDataListener);
+          }
+          const trackUriListener = (data: string) => {
+            this.log.debug('Track URI on device "%s": %s', device.Name, JSON.stringify(data));
+          };
+          if (!device.Events.listeners(SonosEvents.CurrentTrackUri).includes(trackUriListener)) {
+            device.Events.on(SonosEvents.CurrentTrackUri, trackUriListener);
+          }
           this.discoveredSonosCoordinatorDevices.push(device);
         }
       });
