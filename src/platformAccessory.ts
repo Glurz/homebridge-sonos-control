@@ -3,7 +3,7 @@ import {SonosControlPlatform} from './platform.js';
 import {SonosSwitch} from './SonosSwitch';
 import {SonosDevice, SonosEvents} from '@svrooij/sonos/lib/index.js';
 import {ExtendedTransportState} from '@svrooij/sonos/lib/models';
-import {PreviousDeviceState} from './PreviousDeviceState';
+import {SonosState} from '@svrooij/sonos/lib/models/sonos-state';
 
 
 /**
@@ -19,7 +19,8 @@ export class SonosControlPlatformAccessory {
     submittingAudio: false,
   };
 
-  private previousDeviceState: Map<string, PreviousDeviceState | undefined> = new Map();
+  private previousDeviceState: Map<string, SonosState | undefined> = new Map();
+  private trackFromNotification: Map<string, string | undefined> = new Map();
 
   constructor(
     private readonly platform: SonosControlPlatform,
@@ -63,39 +64,43 @@ export class SonosControlPlatformAccessory {
   }
 
   private async playTrack(device: SonosDevice) {
-    const trackChangedListener = (trackUri: string) => {
-      const previousState = this.previousDeviceState.get(device.Uuid);
-      if (previousState) {
-        this.platform.log.debug('Removing previous state on device "%s" due to new trackUri "%s". Will only restore volume.',
-          device.Name, trackUri);
-        this.previousDeviceState.set(device.Uuid, {volume: previousState.volume});
-      }
-      device.Events.off(SonosEvents.CurrentTrackUri, trackChangedListener);
-    };
-    const playbackStoppedListener = (state: ExtendedTransportState) => {
+    const trackStoppedListener = (state: ExtendedTransportState) => {
       if (state === 'STOPPED') {
-        this.platform.log.debug('playbackStoppedListener: playback on device "%s" has stopped', device.Name);
-        this.restorePreviousState(device);
-        device.Events.off(SonosEvents.CurrentTransportState, playbackStoppedListener);
+        device.Events.off(SonosEvents.CurrentTransportState, trackStoppedListener);
+
+        const previousState = this.previousDeviceState.get(device.Uuid);
+        if (previousState) {
+          this.previousDeviceState.set(device.Uuid, undefined);
+          const notificationTrackId = this.trackFromNotification.get(device.Uuid);
+
+          if (notificationTrackId) {
+            device.AVTransportService.GetMediaInfo().then(info => {
+              if (notificationTrackId === info.CurrentURI) {
+                // track finished playing or manually stopped
+                device.RestoreState(previousState, 60).catch(e => {
+                  this.platform.log.error('Restore failed on device "%s": %s', device.Name, JSON.stringify(e));
+                });
+              } else {
+                // new track selected. Only restore previous volume.
+                device.SetVolume(previousState.volume);
+              }
+            });
+          }
+        }
       }
     };
-    const stopAfterTimeoutListener = (state: ExtendedTransportState) => {
-      if (this.sonosSwitch.stopAfter) {
-        if (state === 'PLAYING') {
-          // de-register listener itself
-          device.Events.off(SonosEvents.CurrentTransportState, stopAfterTimeoutListener);
-
+    const trackPlayingListener = (state: ExtendedTransportState) => {
+      if (state === 'PLAYING') {
+        device.Events.off(SonosEvents.CurrentTransportState, trackPlayingListener);
+        device.Events.on(SonosEvents.CurrentTransportState, trackStoppedListener);
+        if (this.sonosSwitch.stopAfter) {
           setTimeout(() => {
             device.Stop();
           }, this.sonosSwitch.stopAfter * 1000);
         }
       }
     };
-    if (this.sonosSwitch.stopAfter) {
-      if (!device.Events.listeners(SonosEvents.CurrentTransportState).includes(stopAfterTimeoutListener)) {
-        device.Events.on(SonosEvents.CurrentTransportState, stopAfterTimeoutListener);
-      }
-    }
+
     await this.savePreviousState(device);
     device.SetAVTransportURI(this.sonosSwitch.trackUri)
       .then(async played => {
@@ -109,16 +114,12 @@ export class SonosControlPlatformAccessory {
           await device.SetVolume(this.sonosSwitch.volume);
         }
 
+        device.Events.on(SonosEvents.CurrentTransportState, trackPlayingListener);
         await device.Play().then(() => {
-          // register a listener that restores the previous state if playback of the track has stopped
-          if (!device.Events.listeners(SonosEvents.CurrentTransportState).includes(playbackStoppedListener)) {
-            device.Events.on(SonosEvents.CurrentTransportState, playbackStoppedListener);
-          }
-
-          // register a listener that deletes the saved state to allow a new track to be played
-          if (!device.Events.listeners(SonosEvents.CurrentTrackUri).includes(trackChangedListener)) {
-            device.Events.on(SonosEvents.CurrentTrackUri, trackChangedListener);
-          }
+          device.AVTransportService.GetMediaInfo().then((info) => {
+            this.platform.log.debug('Stored trackFromNotification %s on device "%s"', info.CurrentURI, device.Name);
+            this.trackFromNotification.set(device.Uuid, info.CurrentURI);
+          });
         });
       }).catch(error => {
         this.platform.log.error('Error while playing track: ' + JSON.stringify(error));
@@ -126,14 +127,13 @@ export class SonosControlPlatformAccessory {
         this.sonosSwitchService.getCharacteristic(this.platform.Characteristic.On).updateValue(false);
         this.switchState.submittingAudio = false;
       });
-
   }
 
   private async savePreviousState(device: SonosDevice) {
     const previousState = this.previousDeviceState.get(device.Uuid);
     if (previousState === undefined) {
       const deviceState = await device.GetState();
-      this.previousDeviceState.set(device.Uuid, {sonosState: deviceState});
+      this.previousDeviceState.set(device.Uuid, deviceState);
       this.platform.log.debug('Stored current state of device "%s" for later restore: %s', device.Name, JSON.stringify(deviceState));
     }
   }
@@ -152,22 +152,6 @@ export class SonosControlPlatformAccessory {
       this.sonosSwitchService.getCharacteristic(this.platform.Characteristic.On).updateValue(false);
       this.switchState.submittingAudio = false;
     });
-  }
-
-  private async restorePreviousState(device: SonosDevice): Promise<boolean> {
-    const previousState = this.previousDeviceState.get(device.Uuid);
-    this.previousDeviceState.set(device.Uuid, undefined);
-    if (previousState) {
-      if (previousState.volume) {
-        this.platform.log.debug('Restoring volume on device "%s"', device.Name);
-        await device.SetVolume(previousState.volume);
-      } else {
-        this.platform.log.debug('Restoring state on device "%s"', device.Name);
-        await device.RestoreState(previousState.sonosState!, 60);
-      }
-      return true;
-    }
-    return false;
   }
 
   /**

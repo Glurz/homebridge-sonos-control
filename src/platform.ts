@@ -107,12 +107,6 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
           if (!device.Events.listeners(SonosEvents.CurrentTrackMetadata).includes(metaDataListener)) {
             device.Events.on(SonosEvents.CurrentTrackMetadata, metaDataListener);
           }
-          const trackUriListener = (data: string) => {
-            this.log.debug('Track URI on device "%s": %s', device.Name, JSON.stringify(data));
-          };
-          if (!device.Events.listeners(SonosEvents.CurrentTrackUri).includes(trackUriListener)) {
-            device.Events.on(SonosEvents.CurrentTrackUri, trackUriListener);
-          }
           this.discoveredSonosCoordinatorDevices.push(device);
         }
       });
