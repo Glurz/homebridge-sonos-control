@@ -16,11 +16,13 @@ export class SonosControlPlatformAccessory {
   private sonosSwitchService: Service;
 
   private switchState = {
-    submittingAudio: false,
+    playing: false,
   };
 
   private previousDeviceState: Map<string, SonosState | undefined> = new Map();
   private trackFromNotification: Map<string, string | undefined> = new Map();
+  private deviceStopTimers: Map<string, NodeJS.Timeout | undefined> = new Map();
+
 
   constructor(
     private readonly platform: SonosControlPlatform,
@@ -63,12 +65,30 @@ export class SonosControlPlatformAccessory {
     });
   }
 
+  private stopOnConfiguredDevices () {
+    const sonosDevices = this.platform.getDiscoveredSonosCoordinatorDevices
+      .filter((sonosDevice) => this.sonosSwitch.sonosDeviceNames.includes(sonosDevice.Name));
+
+    sonosDevices.forEach(device => {
+      device.Stop();
+    });
+  }
+
   private async playTrack(device: SonosDevice) {
     const trackStoppedListener = (state: ExtendedTransportState) => {
       if (state === 'STOPPED') {
+        // reset switch state
+        this.sonosSwitchService.getCharacteristic(this.platform.Characteristic.On).updateValue(false);
+        this.switchState.playing = false;
+
         device.Events.off(SonosEvents.CurrentTransportState, trackStoppedListener);
+        const timer = this.deviceStopTimers.get(device.Uuid);
+        if (timer) {
+          clearTimeout(timer);
+        }
 
         const previousState = this.previousDeviceState.get(device.Uuid);
+        this.platform.log.debug('trackStoppedListener: previousState %s', previousState);
         if (previousState) {
           this.previousDeviceState.set(device.Uuid, undefined);
           const notificationTrackId = this.trackFromNotification.get(device.Uuid);
@@ -94,9 +114,10 @@ export class SonosControlPlatformAccessory {
         device.Events.off(SonosEvents.CurrentTransportState, trackPlayingListener);
         device.Events.on(SonosEvents.CurrentTransportState, trackStoppedListener);
         if (this.sonosSwitch.stopAfter) {
-          setTimeout(() => {
+          const timer= setTimeout(() => {
             device.Stop();
           }, this.sonosSwitch.stopAfter * 1000);
+          this.deviceStopTimers.set(device.Uuid, timer);
         }
       }
     };
@@ -123,9 +144,6 @@ export class SonosControlPlatformAccessory {
         });
       }).catch(error => {
         this.platform.log.error('Error while playing track: ' + JSON.stringify(error));
-      }).finally(() => {
-        this.sonosSwitchService.getCharacteristic(this.platform.Characteristic.On).updateValue(false);
-        this.switchState.submittingAudio = false;
       });
   }
 
@@ -150,7 +168,7 @@ export class SonosControlPlatformAccessory {
       this.platform.log.error('Error while playing notification: ' + JSON.stringify(error));
     }).finally(() => {
       this.sonosSwitchService.getCharacteristic(this.platform.Characteristic.On).updateValue(false);
-      this.switchState.submittingAudio = false;
+      this.switchState.playing = false;
     });
   }
 
@@ -160,12 +178,12 @@ export class SonosControlPlatformAccessory {
    */
   async setOn(value: CharacteristicValue) {
     // implement your own code to turn your device on/off
-    this.switchState.submittingAudio = value as boolean;
+    this.switchState.playing = value as boolean;
     if (value) {
       this.playOnConfiguredDevices();
+    } else {
+      this.stopOnConfiguredDevices();
     }
-
-    //this.platform.log.debug('Set Characteristic On: %s ->', this.sonosSwitch.name, value);
   }
 
   /**
@@ -182,13 +200,9 @@ export class SonosControlPlatformAccessory {
    * this.service.updateCharacteristic(this.platform.Characteristic.On, true)
    */
   async getOn(): Promise<CharacteristicValue> {
-    const isOn = this.switchState.submittingAudio;
-
-    //this.platform.log.debug('Get Characteristic On: %s ->', this.sonosSwitch.name, isOn);
-
+    return this.switchState.playing;
     // if you need to return an error to show the device as "Not Responding" in the Home app:
     // throw new this.platform.api.hap.HapStatusError(this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
-    return isOn;
   }
 
 }
