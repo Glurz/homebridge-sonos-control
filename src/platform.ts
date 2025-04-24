@@ -182,6 +182,7 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
       name: string;
       trackUri: string;
       volume?: number;
+      onlyWhenPlaying: boolean;
       sonosDeviceNames: string[];
       seekPosition?: string;
       stopAfter?: number;
@@ -190,6 +191,7 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
         name: configuredSwitch.name,
         trackUri: configuredSwitch.trackUri,
         volume: configuredSwitch.volume,
+        onlyWhenPlaying: configuredSwitch.onlyWhenPlaying,
         sonosDeviceNames: configuredSwitch.sonosDeviceNames,
         isNotification: false,
         seekPosition: configuredSwitch.seekPosition,

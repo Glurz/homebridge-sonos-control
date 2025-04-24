@@ -121,6 +121,16 @@ export class SonosControlPlatformAccessory {
         }
       }
     };
+    if (this.sonosSwitch.onlyWhenPlaying) {
+      const transportInfo = await device.AVTransportService.GetTransportInfo({ InstanceID: 0 });
+      const isPlaying = transportInfo.CurrentTransportState === 'PLAYING';
+      if (!isPlaying) {
+        // reset switch state
+        this.sonosSwitchService.getCharacteristic(this.platform.Characteristic.On).updateValue(false);
+        this.switchState.playing = false;
+        return;
+      }
+    }
 
     await this.savePreviousState(device);
     device.SetAVTransportURI(this.sonosSwitch.trackUri)

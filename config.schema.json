@@ -96,6 +96,13 @@
               "maximum": 100,
               "required": false
             },
+            "onlyWhenPlaying": {
+              "title": "Only When Playing",
+              "description": "Only play this notification, if the device is already playing.",
+              "type": "boolean",
+              "required": false,
+              "default": false
+            },
             "seekPosition": {
               "title": "Seek",
               "description": "Jump to the given position in the track. Format: hh:mm:ss. Do not use for stream URIs.",
