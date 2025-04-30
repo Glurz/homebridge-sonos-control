@@ -2,7 +2,8 @@
 
 ## ✨ Introduction
 
-The **Homebridge Sonos Control Plugin** allows you to configure HomeKit switches to **play notifications (Notification Switches)** and **play tracks/streams (Track Switches)** on your Sonos devices.
+The **Homebridge Sonos Control Plugin** allows you to configure HomeKit switches to play (native) notifications or tracks on your Sonos devices.
+If multiple tracks are configured for a switch, a track is selected at random.
 
 ## 🔧 Installation
 
@@ -15,75 +16,95 @@ npm install -g homebridge-sonos-control
 
 ## 📄 Configuration
 
-Configuration is done in `config.json`. There are two main functionalities:
-
-- **Notification Switches**: Play short notification sounds (MP3/WAV).
-- **Track Switches**: Play full tracks or streams.
+Configuration is done in `config.json` or via web UI.
 
 ### 📢 Example Configuration
 
 ```json
 {
-  "platform": "GlurzSonosControl",
-  "notificationSwitches": [
+  "switches": [
     {
-      "name": "Doorbell",
-      "trackUri": "http://example.com/doorbell.mp3",
-      "sonosDeviceNames": ["Living Room", "Hallway"],
-      "volume": 30,
-      "onlyWhenPlaying": true
-    }
-  ],
-  "trackSwitches": [
-    {
-      "name": "Relaxing Music",
-      "trackUri": "http://example.com/radio-stream.mp3",
-      "sonosDeviceNames": ["Bedroom"],
-      "volume": 20
+      "name": "Vecna Clock Bedroom",
+      "sonosDeviceNames": [
+        "Bedroom"
+      ],
+      "onlyWhenPlaying": false,
+      "tracks": [
+        {
+          "trackUri": "http://192.168.0.3/stranger-things-clock2.mp3",
+          "nativeNotification": true
+        }
+      ]
     },
     {
-      "name": "Short Extract",
-      "trackUri": "spotify:track:3dPQuX8Gs42Y7b454ybpMR",
-      "sonosDeviceNames": ["Kitchen"],
-      "volume": 20,
-      "seekPosition": "00:02:03",
-      "stopAfter": 5
+      "name": "Radio Stream Livingroom",
+      "sonosDeviceNames": [
+        "Livingroom"
+      ],
+      "onlyWhenPlaying": false,
+      "tracks": [
+        {
+          "trackUri": "x-rincon-mp3radio://http://stream.srg-ssr.ch/drs3/mp3_128.m3u",
+          "nativeNotification": false
+        }
+      ]
+    },
+    {
+      "name": "Random Track Kitchen & Children",
+      "sonosDeviceNames": [
+        "Kitchen", "Children"
+      ],
+      "onlyWhenPlaying": false,
+      "tracks": [
+        {
+          "trackUri": "spotify:track:1NVi9hztbG04tDrxvdv7Om",
+          "nativeNotification": false,
+          "stopAfter": 2000
+        },
+        {
+          "trackUri": "spotify:track:3dPQuX8Gs42Y7b454ybpMR",
+          "nativeNotification": false,
+          "seekPosition": "00:03:27",
+          "stopAfter": 3000
+        }
+      ]
     }
-  ]
+  ],
+  "platform": "GlurzSonosControl"
 }
 ```
 
 ## 📊 Configuration Options
 
-### **Notification Switches**
-Notifications use a native functionality of the Sonos speakers, in which a (short) notification is played, whereby the music currently playing is paused or, depending on the device, continues to play quietly in the background. After the notification, the previous status is restored.
+### Switch
+| Field              | Type            | Description                                                                                                                                                   |
+|--------------------|-----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `name`             | string          | Name of the switch in HomeKit. (required)                                                                                                                     |
+| `sonosDeviceNames` | string[]        | Names of the Sonos devices that will play the notification. (required)                                                                                        |
+| `onlyWhenPlaying`  | boolean         | Only play this notification if the device is already playing. (default: false)                                                                                |
+| `tracks`           | array of tracks | The definition of one or more tracks / notifications to be played by this switch. If more than one track is configured, one is selected at random. (required) |
 
-| Field              | Type           | Description                                                         |
-| ------------------ | -------------- |---------------------------------------------------------------------|
-| `name`             | string         | Name of the switch in HomeKit                                       |
-| `trackUri`         | string (URL)   | The MP3 or WAV file to be played                                    |
-| `sonosDeviceNames` | string[]       | Names of the Sonos devices that will play the notification          |
-| `volume`           | number (1-100) | Volume of the notification (optional)                               |
-| `onlyWhenPlaying`  | boolean        | Only play when the device is already playing music (default: false) |
+### Track
+| Field                | Type                  | Description                                                                                                                                                   |
+|----------------------|-----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `trackUri`           | string (URL)          | The URI of the track / notification to be played. Can be any URI Sonos understands. For native notifications, a MP3 or WAF file must be specified. (required) |
+| `volume`             | number (1-100)        | Volume of the notification. Uses the devices volume if not specified. (optional)                                                                              |
+| `nativeNotification` | boolean               | Whether the native Sonos notification should be used. See description below. (default: true)                                                                  |
+| `seekPosition`     | string (`hh:mm:ss`)   | Start time in the track. Not available for native notifications. (optional)                                                                                   |
+| `stopAfter`        | number (milliseconds) | Stops playback after given amount of milliseconds. Not available for native notifications. (optional)                                                                                                |
 
-### **Track Switches**
-
-| Field              | Type                | Description                                         |
-| ------------------ | ------------------- | --------------------------------------------------- |
-| `name`             | string              | Name of the switch in HomeKit                       |
-| `trackUri`         | string (URL)        | The music or stream URL to be played                |
-| `sonosDeviceNames` | string[]            | Names of the Sonos devices that will play the track |
-| `volume`           | number (1-100)      | Volume of the track (optional)                      |
-| `seekPosition`     | string (`hh:mm:ss`) | Start time in the track (optional)                  |
-| `stopAfter`        | number (seconds)    | Stops playback after X seconds (optional)           |
-
-### **General Options**
-
+### General Options
 | Field           | Type          | Description                                                                                                             |
 | --------------- | ------------- |-------------------------------------------------------------------------------------------------------------------------|
 | `sonosDeviceIp` | string (IPv4) | If automatic discovery fails, a fixed IP of any Sonos device can be specified as a starting point for device discovery. |
 
-### **Track URIs**
+## Native vs. non-native notifications
+Native notifications use a functionality of the Sonos speakers, in which a (short) notification is played, whereby the music currently playing is paused or, depending on the device model, continues to play quietly in the background. After the notification, the previous state is restored.
+Native notifications are limited in that only MP3 or WAV URIs can be used.
+
+Non-native notification emulate this behavior and also restore the state of the device before the notification. Non-native notifications support any kind of URI Sonos understands.
+
+## Track URIs
 Sonos understands a variety of Track URIs. Some examples: 
 - `https://myserver.com/some_file.mp3`
 - `spotify:track:3dPQuX8Gs42Y7b454ybpMR`

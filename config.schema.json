@@ -5,9 +5,9 @@
   "schema": {
     "type": "object",
     "properties": {
-      "notificationSwitches": {
-        "title": "Notification Switches",
-        "description": "Allows to configure multiple HomeKit switches to play notifications.",
+      "switches": {
+        "title": "Switches Configuration",
+        "description": "Allows to configure multiple HomeKit switches to play notifications or tracks.",
         "type": "array",
         "items": {
           "title": "Switch Configuration",
@@ -17,13 +17,6 @@
               "title": "Name",
               "description": "Name of the switch to be added to HomeKit.",
               "type": "string",
-              "required": true
-            },
-            "trackUri": {
-              "title": "Track URI",
-              "description": "The URI of the notification to be played. Must be WAV or MP3.",
-              "type": "string",
-              "format": "uri",
               "required": true
             },
             "sonosDeviceNames": {
@@ -31,6 +24,7 @@
               "description": "The names of the Sonos devices this notification should be played on.",
               "type": "array",
               "required": true,
+              "minItems": 1,
               "items": {
                 "title": "Device Name",
                 "description": "Name of a Sonos device in your local network.",
@@ -38,84 +32,64 @@
                 "required": true
               }
             },
-            "volume": {
-              "title": "Volume",
-              "description": "Volume of the notification.",
-              "type": "number",
-              "minimum": 1,
-              "maximum": 100
-            },
             "onlyWhenPlaying": {
               "title": "Only When Playing",
               "description": "Only play this notification, if the device is already playing.",
               "type": "boolean",
               "required": false,
               "default": false
-            }
-          }
-        }
-      },
-      "trackSwitches": {
-        "title": "Track Switches",
-        "description": "Allows to configure multiple HomeKit switches to play entire tracks or streams.",
-        "type": "array",
-        "items": {
-          "title": "Switch Configuration",
-          "type": "object",
-          "properties": {
-            "name": {
-              "title": "Name",
-              "description": "Name of the switch to be added to HomeKit.",
-              "type": "string",
-              "required": true
             },
-            "trackUri": {
-              "title": "Track URI",
-              "description": "The URI of the track to be played. Can be any kind of track / stream URI Sonos supports.",
-              "type": "string",
-              "format": "uri",
-              "required": true
-            },
-            "sonosDeviceNames": {
-              "title": "Sonos Device Names",
-              "description": "The names of the Sonos devices this track should be played on.",
+            "tracks": {
+              "title": "Tracks Configuration",
+              "description": "If multiple tracks are configured for a switch, a track will be selected at random.",
               "type": "array",
-              "required": true,
+              "minItems": 1,
               "items": {
-                "title": "Device Name",
-                "description": "Name of a Sonos device in your local network.",
-                "type": "string",
-                "required": true
+                "type": "object",
+                "properties": {
+                  "trackUri": {
+                    "title": "Track URI",
+                    "description": "The URI of the notification to be played. Must be WAV or MP3 for native notifications. Otherwise any trackUri that is supported by Sonos can be configured.",
+                    "type": "string",
+                    "format": "uri",
+                    "required": true
+                  },
+                  "volume": {
+                    "title": "Volume",
+                    "description": "Volume of the notification. If not specified, the current volume of the device is used.",
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "required": false
+                  },
+                  "nativeNotification": {
+                    "title": "Native Notification",
+                    "description": "Uses the native notification feature of Sonos. See restrictions with trackUris.",
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "seekPosition": {
+                    "title": "Seek Position",
+                    "description": "Jump to the given position in the track. Format: hh:mm:ss. Do not use for stream URIs.",
+                    "type": "string",
+                    "pattern": "^[0-9]{2}:[0-9]{2}:[0-9]{2}$",
+                    "required": false,
+                    "condition": {
+                      "functionBody": "return model.switches[arrayIndices[0]].tracks[arrayIndices[1]].nativeNotification === false;"
+                    }
+                  },
+                  "stopAfter": {
+                    "title": "Stop Playing After",
+                    "description": "Stop playing after the given amount of milliseconds.",
+                    "type": "number",
+                    "minimum": 0,
+                    "required": false,
+                    "condition": {
+                      "functionBody": "return model.switches[arrayIndices[0]].tracks[arrayIndices[1]].nativeNotification === false;"
+                    }
+                  }
+                }
               }
-            },
-            "volume": {
-              "title": "Volume",
-              "description": "Volume of the track to be played. If left empty, the current volume of the device is used.",
-              "type": "number",
-              "minimum": 1,
-              "maximum": 100,
-              "required": false
-            },
-            "onlyWhenPlaying": {
-              "title": "Only When Playing",
-              "description": "Only play this notification, if the device is already playing.",
-              "type": "boolean",
-              "required": false,
-              "default": false
-            },
-            "seekPosition": {
-              "title": "Seek",
-              "description": "Jump to the given position in the track. Format: hh:mm:ss. Do not use for stream URIs.",
-              "type": "string",
-              "required": false,
-              "pattern": "^[0-9]{2}:[0-9]{2}:[0-9]{2}$"
-            },
-            "stopAfter": {
-              "title": "Stop Playing After",
-              "description": "Stop playing after the given amount of seconds.",
-              "type": "number",
-              "minimum": 0,
-              "required": false
             }
           }
         }

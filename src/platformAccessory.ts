@@ -4,6 +4,7 @@ import {SonosSwitch} from './SonosSwitch';
 import {SonosDevice, SonosEvents} from '@svrooij/sonos/lib/index.js';
 import {ExtendedTransportState} from '@svrooij/sonos/lib/models';
 import {SonosState} from '@svrooij/sonos/lib/models/sonos-state';
+import {SonosSwitchTrack} from './SonosSwitchTrack';
 
 
 /**
@@ -57,10 +58,12 @@ export class SonosControlPlatformAccessory {
     this.previousDeviceState.clear();
     sonosDevices.forEach(device => {
       // TODO: iterate through devices in parallel.
-      if (this.sonosSwitch.isNotification) {
-        this.playNotification(device);
+      const randomTrack = this.sonosSwitch.tracks[Math.floor(Math.random() * this.sonosSwitch.tracks.length)];
+
+      if (randomTrack.isNativeNotification) {
+        this.playNotification(device, randomTrack);
       } else {
-        this.playTrack(device);
+        this.playTrack(device, randomTrack);
       }
     });
   }
@@ -74,7 +77,7 @@ export class SonosControlPlatformAccessory {
     });
   }
 
-  private async playTrack(device: SonosDevice) {
+  private async playTrack(device: SonosDevice, track: SonosSwitchTrack) {
     const trackStoppedListener = (state: ExtendedTransportState) => {
       if (state === 'STOPPED') {
         // reset switch state
@@ -113,10 +116,10 @@ export class SonosControlPlatformAccessory {
       if (state === 'PLAYING') {
         device.Events.off(SonosEvents.CurrentTransportState, trackPlayingListener);
         device.Events.on(SonosEvents.CurrentTransportState, trackStoppedListener);
-        if (this.sonosSwitch.stopAfter) {
+        if (track.stopAfter) {
           const timer= setTimeout(() => {
             device.Stop();
-          }, this.sonosSwitch.stopAfter * 1000);
+          }, track.stopAfter);
           this.deviceStopTimers.set(device.Uuid, timer);
         }
       }
@@ -133,16 +136,16 @@ export class SonosControlPlatformAccessory {
     }
 
     await this.savePreviousState(device);
-    device.SetAVTransportURI(this.sonosSwitch.trackUri)
+    device.SetAVTransportURI(track.trackUri)
       .then(async played => {
         this.platform.log.debug('Submitted new trackUri to device "%s" from switch "%s": %o',
           device.Name, this.sonosSwitch.name, played);
-        if (this.sonosSwitch.seekPosition) {
-          await device.SeekPosition(this.sonosSwitch.seekPosition);
+        if (track.seekPosition) {
+          await device.SeekPosition(track.seekPosition);
         }
-        if (this.sonosSwitch.volume) {
-          this.platform.log.debug('Setting volume on device "%s" to %d', device.Name, this.sonosSwitch.volume);
-          await device.SetVolume(this.sonosSwitch.volume);
+        if (track.volume) {
+          this.platform.log.debug('Setting volume on device "%s" to %d', device.Name, track.volume);
+          await device.SetVolume(track.volume);
         }
 
         device.Events.on(SonosEvents.CurrentTransportState, trackPlayingListener);
@@ -166,11 +169,11 @@ export class SonosControlPlatformAccessory {
     }
   }
 
-  private playNotification(device: SonosDevice) {
+  private playNotification(device: SonosDevice, randomTrack: SonosSwitchTrack) {
     device.PlayNotificationAudioClip({
-      trackUri: this.sonosSwitch.trackUri,
+      trackUri: randomTrack.trackUri,
       onlyWhenPlaying: this.sonosSwitch.onlyWhenPlaying,
-      volume: this.sonosSwitch.volume,
+      volume: randomTrack.volume,
     }).then(played => {
       this.platform.log.debug('Submitted notification to device "%s" from switch "%s": %o',
         device.Name, this.sonosSwitch.name, played);

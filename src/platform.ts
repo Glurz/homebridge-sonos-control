@@ -37,7 +37,12 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
     this.Characteristic = api.hap.Characteristic;
     this.sonosManager = new SonosManager();
     this.discoveredSonosCoordinatorDevices = [];
-    this.pluginConfiguration = this.parseConfiguration();
+    try {
+      this.pluginConfiguration = this.parseConfiguration();
+    } catch (error) {
+      this.pluginConfiguration = {switches: [], sonosDeviceIp: undefined};
+      return;
+    }
 
     this.discoverSonosDevices()
       .then((successful) => {
@@ -161,41 +166,35 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
   parseConfiguration(): PluginConfiguration {
     const switches: Array<SonosSwitch> = [];
     // TODO: validate configuration
-    this.config.notificationSwitches?.forEach((configuredSwitch: {
+    if (this.config.notificationSwitches || this.config.trackSwitches) {
+      this.log.error('Config schema has changed with version 1.0. Please refer to the documentation.');
+      throw new Error();
+    }
+    // TODO: add boolean to not restore state (for tracks)
+    this.config.switches?.forEach((configuredSwitch: {
       name: string;
-      trackUri: string;
-      volume?: number;
-      onlyWhenPlaying: boolean;
       sonosDeviceNames: string[];
+      onlyWhenPlaying: boolean;
+      tracks: {
+        trackUri: string;
+        volume?: number;
+        nativeNotification: boolean;
+        seekPosition?: string;
+        stopAfter?: number;
+      }[];
     }) => {
       switches.push({
         name: configuredSwitch.name,
-        trackUri: configuredSwitch.trackUri,
-        volume: configuredSwitch.volume,
-        onlyWhenPlaying: configuredSwitch.onlyWhenPlaying,
         sonosDeviceNames: configuredSwitch.sonosDeviceNames,
-        isNotification: true,
-      });
-    });
+        onlyWhenPlaying: configuredSwitch.onlyWhenPlaying,
 
-    this.config.trackSwitches?.forEach((configuredSwitch: {
-      name: string;
-      trackUri: string;
-      volume?: number;
-      onlyWhenPlaying: boolean;
-      sonosDeviceNames: string[];
-      seekPosition?: string;
-      stopAfter?: number;
-    }) => {
-      switches.push({
-        name: configuredSwitch.name,
-        trackUri: configuredSwitch.trackUri,
-        volume: configuredSwitch.volume,
-        onlyWhenPlaying: configuredSwitch.onlyWhenPlaying,
-        sonosDeviceNames: configuredSwitch.sonosDeviceNames,
-        isNotification: false,
-        seekPosition: configuredSwitch.seekPosition,
-        stopAfter: configuredSwitch.stopAfter,
+        tracks: configuredSwitch.tracks.map(configTrack => ({
+          trackUri: configTrack.trackUri,
+          volume: configTrack.volume,
+          isNativeNotification: configTrack.nativeNotification,
+          seekPosition: configTrack.seekPosition,
+          stopAfter: configTrack.stopAfter,
+        })),
       });
     });
 
