@@ -91,7 +91,6 @@ export class SonosControlPlatformAccessory {
         }
 
         const previousState = this.previousDeviceState.get(device.Uuid);
-        this.platform.log.debug('trackStoppedListener: previousState %s', previousState);
         if (previousState) {
           this.previousDeviceState.set(device.Uuid, undefined);
           const notificationTrackId = this.trackFromNotification.get(device.Uuid);

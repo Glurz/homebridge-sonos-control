@@ -5,6 +5,12 @@
   "schema": {
     "type": "object",
     "properties": {
+      "name": {
+        "title": "Instance Name",
+        "type": "string",
+        "default": "GlurzSonosControl",
+        "required": true
+      },
       "switches": {
         "title": "Switches Configuration",
         "description": "Allows to configure multiple HomeKit switches to play notifications or tracks.",
