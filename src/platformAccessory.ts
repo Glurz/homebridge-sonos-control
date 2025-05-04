@@ -184,6 +184,10 @@ export class SonosControlPlatformAccessory {
     });
   }
 
+  turnOnSwitchState () {
+    this.sonosSwitchService.getCharacteristic(this.platform.Characteristic.On).updateValue(true);
+  }
+
   /**
    * Handle "SET" requests from HomeKit
    * These are sent when the user changes the state of an accessory, for example, turns on a switch.

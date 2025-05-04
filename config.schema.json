@@ -96,6 +96,12 @@
                   }
                 }
               }
+            },
+            "cronExpression" : {
+              "title": "Cron Expression",
+              "description": "Triggers this switch based on the given cron expression.",
+              "type": "string",
+              "required": false
             }
           }
         }

@@ -6,6 +6,7 @@ import {SonosDevice, SonosEvents, SonosManager} from '@svrooij/sonos/lib/index.j
 import {SonosSwitch} from './SonosSwitch';
 import {PluginConfiguration} from './PluginConfiguration';
 import {Track} from '@svrooij/sonos/lib/models';
+import { CronJob } from 'cron';
 
 
 /**
@@ -27,6 +28,7 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
   private readonly sonosManager: SonosManager;
   private readonly discoveredSonosCoordinatorDevices: Array<SonosDevice>;
   private readonly pluginConfiguration: PluginConfiguration;
+  private cronJobs: Array<CronJob> = [];
 
   constructor(
     public readonly log: Logging,
@@ -135,10 +137,11 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
 
       const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
 
+      let platformAccessory: SonosControlPlatformAccessory;
       if (existingAccessory) {
         // the accessory already exists
         this.log.debug('Restoring existing accessory from cache:', existingAccessory.displayName);
-        new SonosControlPlatformAccessory(this, existingAccessory, configuredSwitch);
+        platformAccessory= new SonosControlPlatformAccessory(this, existingAccessory, configuredSwitch);
 
       } else {
         // the accessory does not yet exist, so we need to create it
@@ -147,10 +150,24 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
         // create a new accessory
         const accessory = new this.api.platformAccessory(configuredSwitch.name, uuid);
         accessory.context.device = configuredSwitch;
-        new SonosControlPlatformAccessory(this, accessory, configuredSwitch);
+        platformAccessory= new SonosControlPlatformAccessory(this, accessory, configuredSwitch);
 
         // link the accessory to your platform
         this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      }
+
+      if (configuredSwitch.cronExpression) {
+        const job = CronJob.from({
+          cronTime: configuredSwitch.cronExpression,
+          onTick:  ()=> {
+            platformAccessory.turnOnSwitchState();
+            platformAccessory.setOn(true).then(() => {
+              this.log.debug('Switch %s triggered by cron expression.', configuredSwitch.name);
+            });
+          },
+          start: true,
+        });
+        this.cronJobs.push(job);
       }
     }
 
@@ -175,6 +192,7 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
       name: string;
       sonosDeviceNames: string[];
       onlyWhenPlaying: boolean;
+      cronExpression?: string;
       tracks: {
         trackUri: string;
         volume?: number;
@@ -187,7 +205,7 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
         name: configuredSwitch.name,
         sonosDeviceNames: configuredSwitch.sonosDeviceNames,
         onlyWhenPlaying: configuredSwitch.onlyWhenPlaying,
-
+        cronExpression: configuredSwitch.cronExpression,
         tracks: configuredSwitch.tracks.map(configTrack => ({
           trackUri: configTrack.trackUri,
           volume: configTrack.volume,
@@ -207,6 +225,10 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
   shutdown() {
     this.log.info('Shutting down platform...');
     this.sonosManager.CancelSubscription();
+    this.log.debug('Stopping %d cron jobs...', this.cronJobs.length);
+    this.cronJobs.forEach(cronJob => {
+      cronJob.stop();
+    });
   }
 
 }

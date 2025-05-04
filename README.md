@@ -34,7 +34,8 @@ Configuration is done in `config.json` or via web UI.
           "trackUri": "http://192.168.0.3/stranger-things-clock2.mp3",
           "nativeNotification": true
         }
-      ]
+      ],
+      "cronExpression": "0 * * * *"
     },
     {
       "name": "Radio Stream Livingroom",
@@ -45,7 +46,8 @@ Configuration is done in `config.json` or via web UI.
       "tracks": [
         {
           "trackUri": "x-rincon-mp3radio://http://stream.srg-ssr.ch/drs3/mp3_128.m3u",
-          "nativeNotification": false
+          "nativeNotification": false,
+          "volume": 30
         }
       ]
     },
@@ -83,6 +85,8 @@ Configuration is done in `config.json` or via web UI.
 | `sonosDeviceNames` | string[]        | Names of the Sonos devices that will play the notification. (required)                                                                                        |
 | `onlyWhenPlaying`  | boolean         | Only play this notification if the device is already playing. (default: false)                                                                                |
 | `tracks`           | array of tracks | The definition of one or more tracks / notifications to be played by this switch. If more than one track is configured, one is selected at random. (required) |
+| `cronExpression`   | string          | A cron expression to trigger this switch. See https://www.npmjs.com/package/cron?activeTab=readme (optional)                                                                                                     |
+
 
 ### Track
 | Field                | Type                  | Description                                                                                                                                                   |
@@ -123,6 +127,8 @@ If you have questions or issues, create an issue on [GitHub](https://github.com/
 
 ## 🙏🏻 Credits
 
-- This plugin uses [svroij](https://sonos-ts.svrooij.io/)'s library to access Sonos from TypeScript.
+This plugin uses:
+-  [svroij](https://sonos-ts.svrooij.io/)'s library to access Sonos from TypeScript.
+- The [cron](https://www.npmjs.com/package/cron) library to trigger switches by cron expressions.
 
 This plugin is not affiliated with Sonos.
