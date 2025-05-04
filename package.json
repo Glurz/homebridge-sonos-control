@@ -2,7 +2,7 @@
   "private": false,
   "displayName": "Homebridge Sonos Control",
   "name": "homebridge-sonos-control",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Allows to play tracks and notifications on your Sonos system via homebridge / HomeKit.",
   "license": "Apache-2.0",
   "type": "module",
@@ -36,7 +36,8 @@
     "glurz"
   ],
   "dependencies": {
-    "@svrooij/sonos": "^2.6.0-beta.12"
+    "@svrooij/sonos": "^2.6.0-beta.12",
+    "cron": "^4.3.0"
   },
   "devDependencies": {
     "@types/debug": "^4.1.12",
