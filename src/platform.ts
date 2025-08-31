@@ -90,7 +90,7 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
   async discoverSonosDevices(): Promise<boolean> {
     try {
       if (this.pluginConfiguration.sonosDeviceIp) {
-        this.log.info('Discovering Sonos devices by IP %s...' + this.pluginConfiguration.sonosDeviceIp);
+        this.log.info('Discovering Sonos devices by IP %s...', this.pluginConfiguration.sonosDeviceIp);
         await this.sonosManager.InitializeFromDevice(this.pluginConfiguration.sonosDeviceIp);
       } else {
         this.log.info('Initializing Sonos by auto discovery...');
@@ -157,17 +157,21 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
       }
 
       if (configuredSwitch.cronExpression) {
-        const job = CronJob.from({
-          cronTime: configuredSwitch.cronExpression,
-          onTick:  ()=> {
-            platformAccessory.turnOnSwitchState();
-            platformAccessory.setOn(true).then(() => {
-              this.log.debug('Switch %s triggered by cron expression.', configuredSwitch.name);
-            });
-          },
-          start: true,
-        });
-        this.cronJobs.push(job);
+        try {
+          const job = CronJob.from({
+            cronTime: configuredSwitch.cronExpression,
+            onTick:  ()=> {
+              platformAccessory.turnOnSwitchState();
+              platformAccessory.setOn(true).then(() => {
+                this.log.debug('Switch %s triggered by cron expression.', configuredSwitch.name);
+              });
+            },
+            start: true,
+          });
+          this.cronJobs.push(job);
+        } catch (error) {
+          this.log.error('Failed to parse cronExpression: %s', configuredSwitch.cronExpression);
+        }
       }
     }
 
@@ -208,18 +212,70 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
         cronExpression: configuredSwitch.cronExpression,
         tracks: configuredSwitch.tracks.map(configTrack => ({
           trackUri: configTrack.trackUri,
-          volume: configTrack.volume,
+          volume: this.getValidVolume(configTrack),
           isNativeNotification: configTrack.nativeNotification,
-          seekPosition: configTrack.seekPosition,
-          stopAfter: configTrack.stopAfter,
+          seekPosition: this.getValidSeekPosition(configTrack),
+          stopAfter: this.getValidStopAfter(configTrack),
         })),
       });
     });
 
     return {
       switches: switches,
-      sonosDeviceIp: this.config.sonosDeviceIp,
+      sonosDeviceIp: this.getValidSonosDeviceIp(),
     };
+  }
+
+  private getValidStopAfter(configTrack: {
+    trackUri: string;
+    volume?: number;
+    nativeNotification: boolean;
+    seekPosition?: string;
+    stopAfter?: number;
+  }) {
+    if (configTrack.stopAfter && (configTrack.stopAfter < 1)) {
+      this.log.error('stopAfter: %d is an invalid stopAfter value.', configTrack.stopAfter);
+      throw Error();
+    }
+    return configTrack.stopAfter;
+  }
+
+  private getValidSeekPosition(configTrack: {
+    trackUri: string;
+    volume?: number;
+    nativeNotification: boolean;
+    seekPosition?: string;
+    stopAfter?: number;
+  }) {
+    if(configTrack.seekPosition &&
+      !/^[0-9]{2}:[0-9]{2}:[0-9]{2}$/.test(configTrack.seekPosition)) {
+      this.log.error('seekPosition: %s is not a valid seek position.', configTrack.seekPosition);
+      throw Error();
+    }
+    return configTrack.seekPosition;
+  }
+
+  private getValidVolume(configTrack: {
+    trackUri: string;
+    volume?: number;
+    nativeNotification: boolean;
+    seekPosition?: string;
+    stopAfter?: number;
+  }) {
+    if (configTrack.volume && (configTrack.volume < 1 || configTrack.volume > 100)) {
+      this.log.error('volume: %d is an invalid volume value.', configTrack.volume);
+      throw Error();
+    }
+    return configTrack.volume;
+  }
+
+  private getValidSonosDeviceIp() {
+    if(this.config.sonosDeviceIp && (!(typeof this.config.sonosDeviceIp === 'string') ||
+      !/^(\d{1,3}\.){3}\d{1,3}$/.test(this.config.sonosDeviceIp))) {
+      this.log.error('sonosDeviceIp: %s is not a valid IPv4 address.', this.config.sonosDeviceIp);
+      throw Error();
+    }
+    return this.config.sonosDeviceIp;
   }
 
   shutdown() {
