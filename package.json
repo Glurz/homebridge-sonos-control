@@ -35,6 +35,10 @@
     "sonos",
     "glurz"
   ],
+  "funding": {
+    "type" : "ko-fi",
+    "url" : "https://ko-fi.com/glurz"
+  },
   "dependencies": {
     "@svrooij/sonos": "^2.6.0-beta.12",
     "cron": "^4.3.3"
