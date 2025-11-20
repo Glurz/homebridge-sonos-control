@@ -95,8 +95,9 @@ Configuration is done in `config.json` or via web UI.
 | `trackUri`           | string (URL)          | The URI of the track / notification to be played. Can be any URI Sonos understands. For native notifications, a MP3 or WAF file must be specified. (required) |
 | `volume`             | number (1-100)        | Volume of the notification. Uses the devices volume if not specified. (optional)                                                                              |
 | `nativeNotification` | boolean               | Whether the native Sonos notification should be used. See description below. (default: true)                                                                  |
-| `seekPosition`     | string (`hh:mm:ss`)   | Start time in the track. Not available for native notifications. (optional)                                                                                   |
-| `stopAfter`        | number (milliseconds) | Stops playback after given amount of milliseconds. Not available for native notifications. (optional)                                                                                                |
+| `seekPosition`       | string (`hh:mm:ss`)   | Start time in the track. Not available for native notifications. (optional)                                                                                   |
+| `stopAfter`          | number (milliseconds) | Stops playback after given amount of milliseconds. Not available for native notifications. (optional)                                                         |
+| `repeatContinuously` | boolean               | Plays the track continuously using Sonos' 'repeat one' functionality. Not available for native notifications. (optional)                                      |
 
 ### General Options
 | Field           | Type          | Description                                                                                                             |

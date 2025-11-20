@@ -203,6 +203,7 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
         nativeNotification: boolean;
         seekPosition?: string;
         stopAfter?: number;
+        repeatContinuously?: boolean;
       }[];
     }) => {
       switches.push({
@@ -216,6 +217,7 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
           isNativeNotification: configTrack.nativeNotification,
           seekPosition: this.getValidSeekPosition(configTrack),
           stopAfter: this.getValidStopAfter(configTrack),
+          repeatContinuously: configTrack.repeatContinuously ?? false,
         })),
       });
     });

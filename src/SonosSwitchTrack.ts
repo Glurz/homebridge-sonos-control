@@ -4,4 +4,5 @@ export interface SonosSwitchTrack {
   isNativeNotification: boolean;
   seekPosition?: string;
   stopAfter?: number;
+  repeatContinuously: boolean;
 }

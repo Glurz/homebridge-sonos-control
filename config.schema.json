@@ -93,6 +93,15 @@
                     "condition": {
                       "functionBody": "return model.switches[arrayIndices[0]].tracks[arrayIndices[1]].nativeNotification === false;"
                     }
+                  },
+                  "repeatContinuously": {
+                    "title": "Repeat Continuously",
+                    "description": "Repeats this track continuously using Sonos' 'repeat one' functionality.",
+                    "type": "boolean",
+                    "required": false,
+                    "condition": {
+                      "functionBody": "return model.switches[arrayIndices[0]].tracks[arrayIndices[1]].nativeNotification === false;"
+                    }
                   }
                 }
               }
