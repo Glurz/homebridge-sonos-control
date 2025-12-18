@@ -41,7 +41,7 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
     this.discoveredSonosCoordinatorDevices = [];
     try {
       this.pluginConfiguration = this.parseConfiguration();
-    } catch (error) {
+    } catch (_error) {
       this.pluginConfiguration = {switches: [], sonosDeviceIp: undefined};
       return;
     }
@@ -169,7 +169,7 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
             start: true,
           });
           this.cronJobs.push(job);
-        } catch (error) {
+        } catch (_error) {
           this.log.error('Failed to parse cronExpression: %s', configuredSwitch.cronExpression);
         }
       }
