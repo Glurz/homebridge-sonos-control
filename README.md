@@ -36,7 +36,7 @@ Configuration is done in `config.json` or via web UI.
           "nativeNotification": true
         }
       ],
-      "cronExpression": "0 * * * *"
+      "cronExpressions": ["0 * * * *"]
     },
     {
       "name": "Radio Stream Livingroom",
@@ -86,7 +86,7 @@ Configuration is done in `config.json` or via web UI.
 | `sonosDeviceNames` | string[]        | Names of the Sonos devices that will play the notification. (required)                                                                                        |
 | `onlyWhenPlaying`  | boolean         | Only play this notification if the device is already playing. (default: false)                                                                                |
 | `tracks`           | array of tracks | The definition of one or more tracks / notifications to be played by this switch. If more than one track is configured, one is selected at random. (required) |
-| `cronExpression`   | string          | A cron expression to trigger this switch. See https://www.npmjs.com/package/cron?activeTab=readme (optional)                                                                                                     |
+| `cronExpressions`  | string[]        | One or more cron expressions to trigger this switch. See https://www.npmjs.com/package/cron?activeTab=readme (optional) |
 
 
 ### Track

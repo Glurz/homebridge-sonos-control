@@ -106,11 +106,15 @@
                 }
               }
             },
-            "cronExpression" : {
-              "title": "Cron Expression",
-              "description": "Triggers this switch based on the given cron expression.",
-              "type": "string",
-              "required": false
+            "cronExpressions" : {
+              "title": "Cron Expressions",
+              "description": "Triggers this switch based on the given cron expressions.",
+              "type": "array",
+              "required": false,
+              "items": {
+                "type": "string",
+                "title": "Cron Expression"
+              }
             }
           }
         }

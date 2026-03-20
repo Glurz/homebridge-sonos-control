@@ -156,11 +156,11 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
         this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       }
 
-      if (configuredSwitch.cronExpression) {
+      configuredSwitch.cronExpressions.forEach((cronExpression) => {
         try {
           const job = CronJob.from({
-            cronTime: configuredSwitch.cronExpression,
-            onTick:  ()=> {
+            cronTime: cronExpression,
+            onTick: () => {
               platformAccessory.turnOnSwitchState();
               platformAccessory.setOn(true).then(() => {
                 this.log.debug('Switch %s triggered by cron expression.', configuredSwitch.name);
@@ -170,9 +170,9 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
           });
           this.cronJobs.push(job);
         } catch (_error) {
-          this.log.error('Failed to parse cronExpression: %s', configuredSwitch.cronExpression);
+          this.log.error('Failed to parse cronExpression: %s', cronExpression);
         }
-      }
+      });
     }
 
     // remove accessories that are no longer configured
@@ -191,12 +191,20 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
       this.log.error('Config schema has changed with version 1.0. Please refer to the documentation.');
       throw new Error();
     }
+    const hasLegacyCronExpression = this.config.switches?.some(
+      (configuredSwitch: { cronExpression?: string }) => Boolean(configuredSwitch.cronExpression),
+    );
+    if (hasLegacyCronExpression) {
+      this.log.warn('A legacy "cronExpression" configuration was detected. Please migrate from "cronExpression" to "cronExpressions".');
+    }
     // TODO: add boolean to not restore state (for tracks)
     this.config.switches?.forEach((configuredSwitch: {
       name: string;
       sonosDeviceNames: string[];
       onlyWhenPlaying: boolean;
+      // legacy property
       cronExpression?: string;
+      cronExpressions?: string[];
       tracks: {
         trackUri: string;
         volume?: number;
@@ -210,7 +218,8 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
         name: configuredSwitch.name,
         sonosDeviceNames: configuredSwitch.sonosDeviceNames,
         onlyWhenPlaying: configuredSwitch.onlyWhenPlaying,
-        cronExpression: configuredSwitch.cronExpression,
+        cronExpressions: configuredSwitch.cronExpressions ??
+          (configuredSwitch.cronExpression ? [configuredSwitch.cronExpression] : []),
         tracks: configuredSwitch.tracks.map(configTrack => ({
           trackUri: configTrack.trackUri,
           volume: this.getValidVolume(configTrack),

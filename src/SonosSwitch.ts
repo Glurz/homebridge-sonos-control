@@ -4,6 +4,6 @@ export interface SonosSwitch {
   name: string;
   sonosDeviceNames: Array<string>;
   onlyWhenPlaying: boolean;
-  cronExpression?: string;
+  cronExpressions: Array<string>;
   tracks: Array<SonosSwitchTrack>;
 }
