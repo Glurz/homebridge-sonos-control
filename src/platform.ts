@@ -26,6 +26,7 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
   // this is used to track restored cached accessories
   private readonly accessories: PlatformAccessory[] = [];
   private readonly sonosManager: SonosManager;
+  private readonly sonosS1Manager: SonosManager | undefined;
   private readonly discoveredSonosCoordinatorDevices: Array<SonosDevice>;
   private readonly pluginConfiguration: PluginConfiguration;
   private cronJobs: Array<CronJob> = [];
@@ -42,8 +43,11 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
     try {
       this.pluginConfiguration = this.parseConfiguration();
     } catch (_error) {
-      this.pluginConfiguration = {switches: [], sonosDeviceIp: undefined};
+      this.pluginConfiguration = {switches: [], sonosDeviceIp: undefined, sonosS1DeviceIp: undefined};
       return;
+    }
+    if (this.pluginConfiguration.sonosS1DeviceIp) {
+      this.sonosS1Manager = new SonosManager();
     }
 
     this.discoverSonosDevices()
@@ -117,6 +121,34 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
           this.discoveredSonosCoordinatorDevices.push(device);
         }
       });
+
+      if (this.sonosS1Manager && this.pluginConfiguration.sonosS1DeviceIp) {
+        try {
+          this.log.info('Discovering Sonos S1 devices by IP %s...', this.pluginConfiguration.sonosS1DeviceIp);
+          await this.sonosS1Manager.InitializeFromDevice(this.pluginConfiguration.sonosS1DeviceIp);
+          this.sonosS1Manager.Devices.forEach(device => {
+            this.log.info('Found S1 device "%s" in group "%s". Is coordinator: %s',
+              device.Name, device.GroupName ?? 'No group', device.IsCoordinator);
+            if (device.IsCoordinator) {
+              const transportStateListener = (state: string) => {
+                this.log.debug('Transport state changed to %s on device "%s"', state, device.Name);
+              };
+              if (!device.Events.listeners(SonosEvents.CurrentTransportState).includes(transportStateListener)) {
+                device.Events.on(SonosEvents.CurrentTransportState, transportStateListener);
+              }
+              const metaDataListener = (data: Track) => {
+                this.log.debug('Current track metadata on device "%s": %s', device.Name, JSON.stringify(data));
+              };
+              if (!device.Events.listeners(SonosEvents.CurrentTrackMetadata).includes(metaDataListener)) {
+                device.Events.on(SonosEvents.CurrentTrackMetadata, metaDataListener);
+              }
+              this.discoveredSonosCoordinatorDevices.push(device);
+            }
+          });
+        } catch (error) {
+          this.log.error('Error while discovering S1 devices: ', error);
+        }
+      }
 
       if (this.discoveredSonosCoordinatorDevices.length === 0) {
         this.log.warn('No Sonos coordinator devices found.');
@@ -234,6 +266,7 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
     return {
       switches: switches,
       sonosDeviceIp: this.getValidSonosDeviceIp(),
+      sonosS1DeviceIp: this.getValidSonosS1DeviceIp(),
     };
   }
 
@@ -289,9 +322,19 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
     return this.config.sonosDeviceIp;
   }
 
+  private getValidSonosS1DeviceIp() {
+    if(this.config.sonosS1DeviceIp && (!(typeof this.config.sonosS1DeviceIp === 'string') ||
+      !/^(\d{1,3}\.){3}\d{1,3}$/.test(this.config.sonosS1DeviceIp))) {
+      this.log.error('sonosS1DeviceIp: %s is not a valid IPv4 address.', this.config.sonosS1DeviceIp);
+      throw Error();
+    }
+    return this.config.sonosS1DeviceIp;
+  }
+
   shutdown() {
     this.log.info('Shutting down platform...');
     this.sonosManager.CancelSubscription();
+    this.sonosS1Manager?.CancelSubscription();
     this.log.debug('Stopping %d cron jobs...', this.cronJobs.length);
     this.cronJobs.forEach(cronJob => {
       cronJob.stop();

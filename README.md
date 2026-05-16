@@ -100,9 +100,10 @@ Configuration is done in `config.json` or via web UI.
 | `repeatContinuously` | boolean               | Plays the track continuously using Sonos' 'repeat one' functionality. Not available for native notifications. (optional)                                      |
 
 ### General Options
-| Field           | Type          | Description                                                                                                             |
-| --------------- | ------------- |-------------------------------------------------------------------------------------------------------------------------|
-| `sonosDeviceIp` | string (IPv4) | If automatic discovery fails, a fixed IP of any Sonos device can be specified as a starting point for device discovery. |
+| Field           | Type          | Description                                                                                                                                        |
+| --------------- | ------------- |----------------------------------------------------------------------------------------------------------------------------------------------------|
+| `sonosDeviceIp` | string (IPv4) | If automatic discovery fails, a fixed IP of any Sonos device can be specified as a starting point for device discovery.                            |
+| `sonosS1DeviceIp` | string (IPv4) | Configure the IP of any Sonos S1 (legacy) device to discover all S1 devices in your network. S1 devices are not discovered by automatic discovery. |
 
 ## Native vs. non-native notifications
 Native notifications use a functionality of the Sonos speakers, in which a (short) notification is played, whereby the music currently playing is paused or, depending on the device model, continues to play quietly in the background. After the notification, the previous state is restored.
@@ -110,6 +111,7 @@ Native notifications are limited in that only MP3 or WAV URIs can be used.
 
 Non-native notification emulate this behavior and also restore the state of the device before the notification. Non-native notifications support any kind of URI Sonos understands.
 
+Sonos S1 (legacy) devices do not support native notifications.
 ## Track URIs
 Sonos understands a variety of Track URIs. Some examples: 
 - `https://myserver.com/some_file.mp3`
