@@ -26,7 +26,7 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
   // this is used to track restored cached accessories
   private readonly accessories: PlatformAccessory[] = [];
   private readonly sonosManager: SonosManager;
-  private readonly sonosS1Manager: SonosManager | undefined;
+  private readonly secondarySonosManager: SonosManager | undefined;
   private readonly discoveredSonosCoordinatorDevices: Set<SonosDevice>;
   private readonly pluginConfiguration: PluginConfiguration;
   private cronJobs: Array<CronJob> = [];
@@ -43,11 +43,11 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
     try {
       this.pluginConfiguration = this.parseConfiguration();
     } catch (_error) {
-      this.pluginConfiguration = {switches: [], sonosDeviceIp: undefined, sonosS1DeviceIp: undefined};
+      this.pluginConfiguration = {switches: [], sonosDeviceIp: undefined, secondarySonosDeviceIp: undefined};
       return;
     }
-    if (this.pluginConfiguration.sonosS1DeviceIp) {
-      this.sonosS1Manager = new SonosManager();
+    if (this.pluginConfiguration.secondarySonosDeviceIp) {
+      this.secondarySonosManager = new SonosManager();
     }
 
     this.discoverSonosDevices()
@@ -124,11 +124,11 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
 
       this.sonosManager.Devices.forEach(device => this.registerCoordinatorDevice(device));
 
-      if (this.sonosS1Manager && this.pluginConfiguration.sonosS1DeviceIp) {
+      if (this.secondarySonosManager && this.pluginConfiguration.secondarySonosDeviceIp) {
         try {
-          this.log.info('Discovering Sonos S1 devices by IP %s...', this.pluginConfiguration.sonosS1DeviceIp);
-          await this.sonosS1Manager.InitializeFromDevice(this.pluginConfiguration.sonosS1DeviceIp);
-          this.sonosS1Manager.Devices.forEach(device => this.registerCoordinatorDevice(device));
+          this.log.info('Discovering Sonos additional devices by secondary IP %s...', this.pluginConfiguration.secondarySonosDeviceIp);
+          await this.secondarySonosManager.InitializeFromDevice(this.pluginConfiguration.secondarySonosDeviceIp);
+          this.secondarySonosManager.Devices.forEach(device => this.registerCoordinatorDevice(device));
         } catch (error) {
           this.log.error('Error while discovering S1 devices: ', error);
         }
@@ -250,7 +250,7 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
     return {
       switches: switches,
       sonosDeviceIp: this.getValidSonosDeviceIp(),
-      sonosS1DeviceIp: this.getValidSonosS1DeviceIp(),
+      secondarySonosDeviceIp: this.getValidSecondarySonosDeviceIp(),
     };
   }
 
@@ -306,19 +306,19 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
     return this.config.sonosDeviceIp;
   }
 
-  private getValidSonosS1DeviceIp() {
-    if(this.config.sonosS1DeviceIp && (!(typeof this.config.sonosS1DeviceIp === 'string') ||
-      !/^(\d{1,3}\.){3}\d{1,3}$/.test(this.config.sonosS1DeviceIp))) {
-      this.log.error('sonosS1DeviceIp: %s is not a valid IPv4 address.', this.config.sonosS1DeviceIp);
+  private getValidSecondarySonosDeviceIp() {
+    if(this.config.secondarySonosDeviceIp && (!(typeof this.config.secondarySonosDeviceIp === 'string') ||
+      !/^(\d{1,3}\.){3}\d{1,3}$/.test(this.config.secondarySonosDeviceIp))) {
+      this.log.error('secondarySonosDeviceIp: %s is not a valid IPv4 address.', this.config.secondarySonosDeviceIp);
       throw Error();
     }
-    return this.config.sonosS1DeviceIp;
+    return this.config.secondarySonosDeviceIp;
   }
 
   shutdown() {
     this.log.info('Shutting down platform...');
     this.sonosManager.CancelSubscription();
-    this.sonosS1Manager?.CancelSubscription();
+    this.secondarySonosManager?.CancelSubscription();
     this.log.debug('Stopping %d cron jobs...', this.cronJobs.length);
     this.cronJobs.forEach(cronJob => {
       cronJob.stop();

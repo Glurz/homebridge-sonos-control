@@ -94,16 +94,16 @@ Configuration is done in `config.json` or via web UI.
 |----------------------|-----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `trackUri`           | string (URL)          | The URI of the track / notification to be played. Can be any URI Sonos understands. For native notifications, a MP3 or WAF file must be specified. (required) |
 | `volume`             | number (1-100)        | Volume of the notification. Uses the devices volume if not specified. (optional)                                                                              |
-| `nativeNotification` | boolean               | Whether the native Sonos notification should be used. See description below. (default: true)                                                                  |
+| `nativeNotification` | boolean               | Whether the native Sonos notification should be used. See description below. S1 devices do not support native notifications. (default: true)                  |
 | `seekPosition`       | string (`hh:mm:ss`)   | Start time in the track. Not available for native notifications. (optional)                                                                                   |
 | `stopAfter`          | number (milliseconds) | Stops playback after given amount of milliseconds. Not available for native notifications. (optional)                                                         |
 | `repeatContinuously` | boolean               | Plays the track continuously using Sonos' 'repeat one' functionality. Not available for native notifications. (optional)                                      |
 
 ### General Options
-| Field           | Type          | Description                                                                                                                                        |
-| --------------- | ------------- |----------------------------------------------------------------------------------------------------------------------------------------------------|
-| `sonosDeviceIp` | string (IPv4) | If automatic discovery fails, a fixed IP of any Sonos device can be specified as a starting point for device discovery.                            |
-| `sonosS1DeviceIp` | string (IPv4) | Configure the IP of any Sonos S1 (legacy) device to discover all S1 devices in your network. S1 devices are not discovered by automatic discovery. |
+| Field           | Type          | Description                                                                                                                                                                                                                                                               |
+| --------------- | ------------- |---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `sonosDeviceIp` | string (IPv4) | As an alternative to automatic device discovery (default), a fixed IP of any Sonos device can be specified as a starting point for device discovery. If a S2 device IP is specified, all S2 devices in the network are discovered. The same applies to a S1 device IP. It |
+| `secondarySonosDeviceIp` | string (IPv4) | Works analogously to `sonosDeviceIp`. Allows to discover S1 and S2 devices separately.                                                                                                                                                                                    |
 
 ## Native vs. non-native notifications
 Native notifications use a functionality of the Sonos speakers, in which a (short) notification is played, whereby the music currently playing is paused or, depending on the device model, continues to play quietly in the background. After the notification, the previous state is restored.

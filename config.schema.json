@@ -121,14 +121,14 @@
       },
       "sonosDeviceIp": {
         "title": "Sonos Device IP",
-        "description": "If auto discovery of Sonos devices fails in your local network, enter the IP of any S2 Sonos device. For this to work reliably, a static IP should be assigned to this device.",
+        "description": "If auto discovery of Sonos devices fails in your local network, enter the IP of any Sonos device (S1 or S2) as starting point for device discovery. For this to work reliably, a static IP should be assigned to this device.",
         "type": "string",
         "format": "ipv4",
         "required": false
       },
-      "sonosS1DeviceIp": {
-        "title": "Sonos S1 Device IP",
-        "description": "IP of a Sonos (legacy) S1 device. If set, a second discovery is performed to find all S1 devices. For this to work reliably, a static IP should be assigned to this device. Auto-discovery will only find S2 devices.",
+      "secondarySonosDeviceIp": {
+        "title": "Secondary Sonos Device IP",
+        "description": "IP of another Sonos device (S1 or S2) as starting point for device discovery. For this to work reliably, a static IP should be assigned to this device.",
         "type": "string",
         "format": "ipv4",
         "required": false
