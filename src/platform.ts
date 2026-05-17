@@ -17,7 +17,7 @@ import { CronJob } from 'cron';
 export class SonosControlPlatform implements DynamicPlatformPlugin {
 
   get getDiscoveredSonosCoordinatorDevices(): Array<SonosDevice> {
-    return this.discoveredSonosCoordinatorDevices;
+    return [...this.discoveredSonosCoordinatorDevices];
   }
 
   public readonly Service: typeof Service;
@@ -27,7 +27,7 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
   private readonly accessories: PlatformAccessory[] = [];
   private readonly sonosManager: SonosManager;
   private readonly sonosS1Manager: SonosManager | undefined;
-  private readonly discoveredSonosCoordinatorDevices: Array<SonosDevice>;
+  private readonly discoveredSonosCoordinatorDevices: Set<SonosDevice>;
   private readonly pluginConfiguration: PluginConfiguration;
   private cronJobs: Array<CronJob> = [];
 
@@ -39,7 +39,7 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
     this.Service = api.hap.Service;
     this.Characteristic = api.hap.Characteristic;
     this.sonosManager = new SonosManager();
-    this.discoveredSonosCoordinatorDevices = [];
+    this.discoveredSonosCoordinatorDevices = new Set();
     try {
       this.pluginConfiguration = this.parseConfiguration();
     } catch (_error) {
@@ -91,6 +91,27 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
     this.accessories.push(accessory);
   }
 
+  private registerCoordinatorDevice(device: SonosDevice) {
+    this.log.info('Found device "%s" in group "%s". Is coordinator: %s',
+      device.Name, device.GroupName ?? 'No group', device.IsCoordinator);
+
+    if (device.IsCoordinator) {
+      const transportStateListener = (state: string) => {
+        this.log.debug('Transport state changed to %s on device "%s"', state, device.Name);
+      };
+      if (!device.Events.listeners(SonosEvents.CurrentTransportState).includes(transportStateListener)) {
+        device.Events.on(SonosEvents.CurrentTransportState, transportStateListener);
+      }
+      const metaDataListener = (data: Track) => {
+        this.log.debug('Current track metadata on device "%s": %s', device.Name, JSON.stringify(data));
+      };
+      if (!device.Events.listeners(SonosEvents.CurrentTrackMetadata).includes(metaDataListener)) {
+        device.Events.on(SonosEvents.CurrentTrackMetadata, metaDataListener);
+      }
+      this.discoveredSonosCoordinatorDevices.add(device);
+    }
+  }
+
   async discoverSonosDevices(): Promise<boolean> {
     try {
       if (this.pluginConfiguration.sonosDeviceIp) {
@@ -101,56 +122,19 @@ export class SonosControlPlatform implements DynamicPlatformPlugin {
         await this.sonosManager.InitializeWithDiscovery(10);
       }
 
-      this.sonosManager.Devices.forEach(device => {
-        this.log.info('Found device "%s" in group "%s". Is coordinator: %s',
-          device.Name, device.GroupName ?? 'No group', device.IsCoordinator);
-
-        if (device.IsCoordinator) {
-          const transportStateListener = (state: string) => {
-            this.log.debug('Transport state changed to %s on device "%s"', state, device.Name);
-          };
-          if (!device.Events.listeners(SonosEvents.CurrentTransportState).includes(transportStateListener)) {
-            device.Events.on(SonosEvents.CurrentTransportState, transportStateListener);
-          }
-          const metaDataListener = (data: Track) => {
-            this.log.debug('Current track metadata on device "%s": %s', device.Name, JSON.stringify(data));
-          };
-          if (!device.Events.listeners(SonosEvents.CurrentTrackMetadata).includes(metaDataListener)) {
-            device.Events.on(SonosEvents.CurrentTrackMetadata, metaDataListener);
-          }
-          this.discoveredSonosCoordinatorDevices.push(device);
-        }
-      });
+      this.sonosManager.Devices.forEach(device => this.registerCoordinatorDevice(device));
 
       if (this.sonosS1Manager && this.pluginConfiguration.sonosS1DeviceIp) {
         try {
           this.log.info('Discovering Sonos S1 devices by IP %s...', this.pluginConfiguration.sonosS1DeviceIp);
           await this.sonosS1Manager.InitializeFromDevice(this.pluginConfiguration.sonosS1DeviceIp);
-          this.sonosS1Manager.Devices.forEach(device => {
-            this.log.info('Found S1 device "%s" in group "%s". Is coordinator: %s',
-              device.Name, device.GroupName ?? 'No group', device.IsCoordinator);
-            if (device.IsCoordinator) {
-              const transportStateListener = (state: string) => {
-                this.log.debug('Transport state changed to %s on device "%s"', state, device.Name);
-              };
-              if (!device.Events.listeners(SonosEvents.CurrentTransportState).includes(transportStateListener)) {
-                device.Events.on(SonosEvents.CurrentTransportState, transportStateListener);
-              }
-              const metaDataListener = (data: Track) => {
-                this.log.debug('Current track metadata on device "%s": %s', device.Name, JSON.stringify(data));
-              };
-              if (!device.Events.listeners(SonosEvents.CurrentTrackMetadata).includes(metaDataListener)) {
-                device.Events.on(SonosEvents.CurrentTrackMetadata, metaDataListener);
-              }
-              this.discoveredSonosCoordinatorDevices.push(device);
-            }
-          });
+          this.sonosS1Manager.Devices.forEach(device => this.registerCoordinatorDevice(device));
         } catch (error) {
           this.log.error('Error while discovering S1 devices: ', error);
         }
       }
 
-      if (this.discoveredSonosCoordinatorDevices.length === 0) {
+      if (this.discoveredSonosCoordinatorDevices.size === 0) {
         this.log.warn('No Sonos coordinator devices found.');
         return false;
       }
